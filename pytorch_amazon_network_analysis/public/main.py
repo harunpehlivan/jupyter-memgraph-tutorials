@@ -88,9 +88,7 @@ def nlp_analysis(sentence: str):
                        num_long_sentences,
                        sum(num_words_sentence) * 1.0 / num_of_sentences]
 
-    for key, value in scores.items():
-        analysis_vector.append(value)
-
+    analysis_vector.extend(value for key, value in scores.items())
     return np.array(analysis_vector, dtype=float)
 
 
@@ -102,8 +100,18 @@ def read_dataset(dataset_path: str):
     num_items = len(product_reviews_json)
     for i, review in enumerate(product_reviews_json):
 
-        if not all(name in review for name in ["product/productId", "product/title", "review/userId",
-                                               "review/score", "review/time", "review/text", "review/profileName"]):
+        if any(
+            name not in review
+            for name in [
+                "product/productId",
+                "product/title",
+                "review/userId",
+                "review/score",
+                "review/time",
+                "review/text",
+                "review/profileName",
+            ]
+        ):
             continue
 
         analysis_vector = nlp_analysis(review["review/text"])
@@ -128,12 +136,15 @@ def write_features(all_product_reviews: List[ProductReview]):
     graph_data = np.empty((0, 4), dtype=int)
     all_edge_features = np.empty((0, 20), dtype=float)
 
-    all_user_ids = set([show_review.user_id for show_review in all_product_reviews])
+    all_user_ids = {show_review.user_id for show_review in all_product_reviews}
     all_user_ids_mappings = {user_id: i for i, user_id in enumerate(all_user_ids)}
 
     max_num_user_id = len(all_user_ids_mappings)
 
-    all_target_ids = set([show_review.product_id for show_review in all_product_reviews])
+    all_target_ids = {
+        show_review.product_id for show_review in all_product_reviews
+    }
+
     all_target_ids_mappings = {product_id: (max_num_user_id + i) for i, product_id in enumerate(all_target_ids)}
 
     for i, product_review in enumerate(all_product_reviews):
@@ -156,9 +167,7 @@ def write_features(all_product_reviews: List[ProductReview]):
 def make_queries(all_product_reviews: List[ProductReview], queries_file_path: str) -> None:
     queries = [product.make_queries() for product in all_product_reviews]
 
-    final_queries = ["MATCH (n) DETACH DELETE n;"]
-    final_queries.extend(queries)
-
+    final_queries = ["MATCH (n) DETACH DELETE n;", *queries]
     with open(queries_file_path, "w") as fh:
         fh.write("\n".join(final_queries))
 
@@ -168,10 +177,7 @@ def get_args() -> Dict[str, Any]:
     parser.add_argument("--save", required=True, choices=['queries', 'npy', 'all'],
                         help="save features with queries, numpy or both")
     args = parser.parse_args()
-    config = dict()
-    for arg in vars(args):
-        config[arg] = getattr(args, arg)
-    return config
+    return {arg: getattr(args, arg) for arg in vars(args)}
 
 
 def main():
