@@ -51,7 +51,9 @@ def main():
     json_file_path = f"{dir_path}/../data/product_reviews.json"
     print(f"[INFO] Writing JSON to file {json_file_path}")
     write_to_file(json_string, json_file_path)
-    print(f"[INFO] Writing to file done! Now run 'python3 public/main.py' to create queries.")
+    print(
+        "[INFO] Writing to file done! Now run 'python3 public/main.py' to create queries."
+    )
 
 
 if __name__ == "__main__":
